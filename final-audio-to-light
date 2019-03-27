@@ -1,7 +1,6 @@
 #include "Particle.h"
 #include "neomatrix.h"
 
-// IMPORTANT: Set pixel PIN and TYPE
 #define PIXEL_PIN D2
 #define PIXEL_TYPE WS2812B
 
