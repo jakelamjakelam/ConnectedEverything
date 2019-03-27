@@ -1,0 +1,76 @@
+#include "Particle.h"
+#include "neomatrix.h"
+
+// IMPORTANT: Set pixel PIN and TYPE
+#define PIXEL_PIN D2
+#define PIXEL_TYPE WS2812B
+
+ 
+
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(8, 8, PIXEL_PIN,
+  NEO_MATRIX_TOP     + NEO_MATRIX_RIGHT +
+  NEO_MATRIX_COLUMNS + NEO_MATRIX_PROGRESSIVE,
+  PIXEL_TYPE);
+
+
+const int maxScale = 255;
+const int redZone = 5;
+
+const int sampleWindow = 50; // Sample window width in mS (50 mS = 20Hz)
+unsigned int sample;
+
+ int displayPeak = 0;
+
+const uint16_t colors[] = {
+  matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255) };
+
+void setup() {
+  Serial.begin(9600);
+  matrix.begin();
+  matrix.setTextWrap(false);
+  matrix.setBrightness(100);
+  matrix.setTextColor(matrix.Color(80,255,0));
+  
+  
+  Particle.variable("displayPeak", &displayPeak, INT);
+  
+}
+
+int x    = matrix.width();
+int pass = 0;
+
+void loop() {
+    matrix.fillScreen(0);
+    unsigned long startMillis= millis();  // Start of sample window
+
+    unsigned int peakToPeak = 0;   // peak-to-peak level
+
+    unsigned int signalMax = 0;
+    unsigned int signalMin = 1024;
+
+    while (millis() - startMillis < sampleWindow)
+   {
+      sample = analogRead(0); 
+      if (sample < 1024)  // toss out spurious readings
+      {
+         if (sample > signalMax)
+         {
+            signalMax = sample;  // save just the max levels
+         }
+         else if (sample < signalMin)
+         {
+            signalMin = sample;  // save just the min levels
+         }
+      }
+   }
+   peakToPeak = signalMax - signalMin;
+
+   // map 1v p-p level to the max scale of the display
+displayPeak = map(peakToPeak, 0, 1023, 0, maxScale);
+   
+   Serial.println(displayPeak);
+   uint16_t fun =  matrix.Color(0, 0,  displayPeak);
+   matrix.fillScreen(fun);
+   matrix.show();
+}
+
